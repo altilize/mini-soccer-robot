@@ -1,46 +1,3 @@
-// void Motion(int speed, int turnspeed) {
-//   speed = constrain(speed, -255, 255);
-//   turnspeed = constrain(turnspeed, -255, 255);
-
-//   if (speed == 0) {
-//     if (turnspeed > 0) {  // Turning right
-//       analogWrite(LEFT_BACKWARD, turnspeed);
-//       analogWrite(RIGHT_BACKWARD, 0);
-//       analogWrite(LEFT_FORWARD, 0);
-//       analogWrite(RIGHT_FORWARD, turnspeed);
-//     } else {  // Turning left
-//       analogWrite(LEFT_BACKWARD, 0);
-//       analogWrite(RIGHT_BACKWARD, -turnspeed);
-//       analogWrite(LEFT_FORWARD, -turnspeed);
-//       analogWrite(RIGHT_FORWARD, 0);
-//     }
-//   } else {
-
-//     bool isMovingBackward = (speed < 0);
-//     if (isMovingBackward) {
-//       speed = -speed;
-//     }
-
-//     int leftSpeed = speed + turnspeed;
-//     int rightSpeed = speed - turnspeed;
-
-//     leftSpeed = constrain(leftSpeed, -255, 255);
-//     rightSpeed = constrain(rightSpeed, -255, 255);
-
-//     if (isMovingBackward) {  // Moving backward
-//       analogWrite(LEFT_BACKWARD, leftSpeed);
-//       analogWrite(RIGHT_BACKWARD, rightSpeed);
-//       analogWrite(LEFT_FORWARD, 0);
-//       analogWrite(RIGHT_FORWARD, 0);
-//     } else {  // Moving forward
-//       analogWrite(LEFT_BACKWARD, 0);
-//       analogWrite(RIGHT_BACKWARD, 0);
-//       analogWrite(LEFT_FORWARD, leftSpeed);
-//       analogWrite(RIGHT_FORWARD, rightSpeed);
-//     }
-//   }
-// }
-
 void Motion(int speed, int turnspeed) {
   speed = constrain(speed, -255, 255);
   turnspeed = constrain(turnspeed, -255, 255);
@@ -59,11 +16,9 @@ void Motion(int speed, int turnspeed) {
       analogWrite(RIGHT_FORWARD, 0);
     }
   } else {
-    // Menangani gerakan maju atau mundur
     bool isMovingBackward = (speed < 0);
-    int absoluteSpeed = abs(speed);  // Pastikan kecepatan selalu positif
+    int absoluteSpeed = abs(speed);
 
-    // Hitung kecepatan kiri dan kanan
     int leftSpeed = absoluteSpeed + turnspeed;
     int rightSpeed = absoluteSpeed - turnspeed;
 
@@ -83,8 +38,6 @@ void Motion(int speed, int turnspeed) {
     }
   }
 }
-
-
 
 int mixedCubicMapping(int rawInput, float cubicWeight = 1) {
   if (rawInput > 512) rawInput = 512;

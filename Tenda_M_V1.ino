@@ -1,20 +1,29 @@
-#define MOTOR_ENABLE 32
-
-#define RIGHT_FORWARD 25
-#define RIGHT_BACKWARD 26
-#define LEFT_BACKWARD 27
-#define LEFT_FORWARD 14
-
-#define KICKER 33
-
-#include <Bluepad32.h>
-#include "Motion.h"
-#include "Debug.h"
+#include "Global.h"
 
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 
-unsigned long prevMillis;
-// unsigned long currentMillis;
+void dumpGamepad(ControllerPtr ctl) {
+  Serial.printf(
+    "idx=%d, dpad: 0x%02x, buttons: 0x%04x, axis L: %4d, %4d, axis R: %4d, %4d, brake: %4d, throttle: %4d, "
+    "misc: 0x%02x, gyro x:%6d y:%6d z:%6d, accel x:%6d y:%6d z:%6d\n",
+    ctl->index(),        // Controller Index
+    ctl->dpad(),         // D-pad
+    ctl->buttons(),      // bitmask of pressed buttons
+    ctl->axisX(),        // (-511 - 512) left X Axis
+    ctl->axisY(),        // (-511 - 512) left Y axis
+    ctl->axisRX(),       // (-511 - 512) right X axis
+    ctl->axisRY(),       // (-511 - 512) right Y axis
+    ctl->brake(),        // (0 - 1023): brake button
+    ctl->throttle(),     // (0 - 1023): throttle (AKA gas) button
+    ctl->miscButtons(),  // bitmask of pressed "misc" buttons
+    ctl->gyroX(),        // Gyro X
+    ctl->gyroY(),        // Gyro Y
+    ctl->gyroZ(),        // Gyro Z
+    ctl->accelX(),       // Accelerometer X
+    ctl->accelY(),       // Accelerometer Y
+    ctl->accelZ()        // Accelerometer Z
+  );
+}
 
 void onConnectedController(ControllerPtr ctl) {
   bool foundEmptySlot = false;
@@ -51,23 +60,26 @@ void onDisconnectedController(ControllerPtr ctl) {
   }
 }
 
-// ======================= GAME CONTROLLER ACTIONS SECTION ======================= //
 void processGamepad(ControllerPtr ctl) {
-
+  bool L1pressed = ctl->l1();
+  bool R1pressed = ctl->r1();
   bool L2pressed = ctl->buttons() == 0x0040;
   bool R2pressed = ctl->buttons() == 0x0080;
-  bool kicker = ctl->a();
-  int turnSpeed = 0;
+  bool Xpressed = ctl->a();
+  bool TrianglePressed = ctl->y();
+
+
+
   int joystickY_value = ctl->axisY();
+  int joystickX_value = ctl->axisRX();
   int speed = 0;
-  bool boostLEFT = ctl->l1();
-  bool boostRIGHT = ctl->r1();
-  bool boostUP = ctl->y();
+  int turnSpeed = 0;
 
   speed = mixedCubicMapping(joystickY_value);
+  turnSpeed = mixedCubicMapping(joystickX_value) * -1;
 
-  if (!L2pressed && !L2pressed && !boostUP) {
-    ctl->setColorLED(128, 128, 128);
+  if (!L2pressed && !R2pressed && !L1pressed && !R1pressed) {
+    ctl->setColorLED(1, 8, 79);
   }
 
   // ------------ L2 Pressed ------------------
@@ -114,37 +126,52 @@ void processGamepad(ControllerPtr ctl) {
       Serial.println("R2 Gede Bgt");
     }
   }
-  if (kicker) {
+
+  if (Xpressed) {
     digitalWrite(KICKER, HIGH);
     delay(5);
     digitalWrite(KICKER, LOW);
     Serial.print("KICK");
   }
 
-
-  if (boostUP) {
-    unsigned long currentMillis = millis();
-    if (currentMillis - prevMillis >= 8000) {
-      ctl->playDualRumble(0, 250, 0x80, 0x40);
-      Serial.println("GETAR");
-      prevMillis = currentMillis;
+  // --------- boost --------------
+  if (R1pressed) {
+    if (getarMillis <= 250 && !getar_flag) {
+      ctl->playDualRumble(0, 400, 0x80, 0x40);
+      getarMillis = millis();
+      getar_flag = true;
+    } else {
+      getarMillis = 0;
+      ctl->playDualRumble(0, 0, 0, 0);
     }
     ctl->setColorLED(255, 0, 0);
-    Serial.println("UP BOOST");
-    speed = 255;
+    Serial.println("BOOST");
+    if (speed < 0) {
+      speed = -255;  // Boosting
+      Serial.println("BOOST BACK");
+    } else {
+      speed = 255;  // Boosting
+      Serial.println("BOOST FWD");
+    }
+
+  } else {
+    getar_flag = false;
   }
 
-  if (boostRIGHT) {
-    Serial.println("RIGHT BOOST");
-    turnSpeed = 180;
+  //  ------ reduce ----------
+  if (L1pressed) {
+    ctl->setColorLED(0, 255, 0);
+
+    if (speed < 0) {
+      speed = -100;  // reduce
+
+    } else {
+      speed = 50;
+      Serial.println("REDUCE FRWD");
+    }
   }
 
-  if (boostLEFT) {
-    ctl->setColorLED(255, 0, 0);
-    Serial.println("LEFT BOOST");
-    turnSpeed = -180;
-  }
-
+  Motion(speed, turnSpeed);
 
   Serial.print("Speed : ");
   Serial.print(speed);
@@ -152,9 +179,9 @@ void processGamepad(ControllerPtr ctl) {
   Serial.print(turnSpeed);
   Serial.print(" axis Y : ");
   Serial.println(ctl->axisY());
-  Motion(speed, turnSpeed);
 
-  dumpGamepad(ctl);
+
+  // dumpGamepad(ctl);
 }
 
 void processControllers() {
@@ -190,12 +217,10 @@ void setup() {
   digitalWrite(MOTOR_ENABLE, HIGH);
 }
 
-
 void loop() {
   bool dataUpdated = BP32.update();
-  if (dataUpdated)
+  if (dataUpdated) {
     processControllers();
-
-
+  }
   delayMicroseconds(20);
 }
