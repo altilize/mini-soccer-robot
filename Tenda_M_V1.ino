@@ -61,12 +61,14 @@ void onDisconnectedController(ControllerPtr ctl) {
 }
 
 void processGamepad(ControllerPtr ctl) {
-  bool L1pressed = ctl->l1();
-  bool R1pressed = ctl->r1();
+  bool L1pressed = ctl->buttons() == 0x0010;
+  bool R1pressed = ctl->buttons() == 0x0020;
   bool L2pressed = ctl->buttons() == 0x0040;
   bool R2pressed = ctl->buttons() == 0x0080;
-  bool Xpressed = ctl->a();
-  bool TrianglePressed = ctl->y();
+  bool Xpressed = ctl->buttons() == 0x0001;
+  bool TrianglePressed = ctl->buttons() == 0x0008;
+  bool SquarePressed = ctl->buttons() == 0x0004;
+  bool CirclePressed = ctl->buttons() == 0x0002;
 
 
 
@@ -86,21 +88,21 @@ void processGamepad(ControllerPtr ctl) {
   if (L2pressed) {
     ctl->setColorLED(255, 255, 0);
     if (speed == 0) {
-      turnSpeed = -170;
+      turnSpeed = -50;
     }
 
     if (speed != 0 && (speed <= 10 && speed >= -10)) {
-      turnSpeed = -70;
+      turnSpeed = -40;
       Serial.println("L2 Kecil");
     }
 
     if ((speed >= 10 && speed <= 120) || (speed <= -10 && speed >= -120)) {
-      turnSpeed = -80;
+      turnSpeed = -50;
       Serial.println("L2 Gede Aja");
     }
 
     if (speed > 120 || speed < -120) {
-      turnSpeed = -150;
+      turnSpeed = -120;
       Serial.println("L2 Gede Bgt");
     }
   }
@@ -109,32 +111,32 @@ void processGamepad(ControllerPtr ctl) {
   if (R2pressed) {
     ctl->setColorLED(0, 255, 255);
     if (speed == 0) {
-      turnSpeed = 170;
+      turnSpeed = 50;
     }
     if (speed != 0 && (speed <= 10 && speed >= -10)) {
-      turnSpeed = 70;
+      turnSpeed = 40;
       Serial.println("R2 Kecil");
     }
 
     if ((speed >= 10 && speed <= 120) || (speed <= -10 && speed >= -120)) {
-      turnSpeed = 80;
+      turnSpeed = 50;
       Serial.println("R2 Gede Aja");
     }
 
     if (speed > 120 || speed < -120) {
-      turnSpeed = 150;
+      turnSpeed = 120;
       Serial.println("R2 Gede Bgt");
     }
   }
 
   if (Xpressed) {
     digitalWrite(KICKER, HIGH);
-    delay(5);
+    delay(50);
     digitalWrite(KICKER, LOW);
     Serial.print("KICK");
   }
-
-  // --------- boost --------------
+  // ------------ SKILL -----------------------
+  // boost
   if (R1pressed) {
     if (getarMillis <= 250 && !getar_flag) {
       ctl->playDualRumble(0, 400, 0x80, 0x40);
@@ -158,7 +160,7 @@ void processGamepad(ControllerPtr ctl) {
     getar_flag = false;
   }
 
-  //  ------ reduce ----------
+  //  reduce
   if (L1pressed) {
     ctl->setColorLED(0, 255, 0);
 
@@ -171,14 +173,75 @@ void processGamepad(ControllerPtr ctl) {
     }
   }
 
+  // --------------- Putar 180 ----------------
+  if (TrianglePressed && !turnStarted && !isTurning) {
+    isTurning = true;
+    turnStarted = true;
+    turnMillis = millis();
+    Serial.println("PUTAR");
+  }
+
+  if (isTurning) {
+    if (millis() - turnMillis <= 275) {
+      turnSpeed = 255;
+    } else {
+      isTurning = false;
+      Serial.println("STOP PUTAR");
+    }
+  }
+  // reset
+  if (!TrianglePressed) {
+    turnStarted = false;
+  }
+
+  // ------------- Putar 90 ---------------------
+  if (CirclePressed && !turn90started && !isTurning90) {
+    isTurning90 = true;
+    turn90started = true;
+    turn90Millis = millis();
+    Serial.println("PUTAR 90");
+  }
+  if (isTurning90) {
+    if (millis() - turn90Millis <= 140) {
+      turnSpeed = 255;
+    } else {
+      isTurning90 = false;
+      Serial.println("STOP PUTAR");
+    }
+  }
+  // reset
+  if (!CirclePressed) {
+    turn90started = false;
+  }
+
+  // ------------- Putar 90 ---------------------
+  if (SquarePressed && !turn90started_reverse && !isTurning90_reverse) {
+    isTurning90_reverse = true;
+    turn90started_reverse = true;
+    turn90Millis_reverse = millis();
+    Serial.println("PUTAR 90 REVERSE");
+  }
+  if (isTurning90_reverse) {
+    if (millis() - turn90Millis_reverse <= 140) {
+      turnSpeed = -255;
+    } else {
+      isTurning90_reverse = false;
+      Serial.println("STOP PUTAR Reverse");
+    }
+  }
+  // reset
+  if (!SquarePressed) {
+    turn90started_reverse = false;
+  }
+
   Motion(speed, turnSpeed);
 
-  Serial.print("Speed : ");
-  Serial.print(speed);
-  Serial.print("Turn : ");
-  Serial.print(turnSpeed);
-  Serial.print(" axis Y : ");
-  Serial.println(ctl->axisY());
+  // Serial.print("Speed : ");
+  // Serial.print(speed);
+  // Serial.print("Turn : ");
+  // Serial.print(turnSpeed);
+  // Serial.print(" axis Y : ");
+  // Serial.println(ctl->axisY());
 
 
   // dumpGamepad(ctl);
@@ -215,6 +278,8 @@ void setup() {
 
   pinMode(MOTOR_ENABLE, OUTPUT);
   digitalWrite(MOTOR_ENABLE, HIGH);
+
+  startMillis = millis();
 }
 
 void loop() {
