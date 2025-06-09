@@ -1,65 +1,6 @@
 #include "Global.h"
 
-ControllerPtr myControllers[BP32_MAX_GAMEPADS];
-
-void dumpGamepad(ControllerPtr ctl) {
-  Serial.printf(
-    "idx=%d, dpad: 0x%02x, buttons: 0x%04x, axis L: %4d, %4d, axis R: %4d, %4d, brake: %4d, throttle: %4d, "
-    "misc: 0x%02x, gyro x:%6d y:%6d z:%6d, accel x:%6d y:%6d z:%6d\n",
-    ctl->index(),        // Controller Index
-    ctl->dpad(),         // D-pad
-    ctl->buttons(),      // bitmask of pressed buttons
-    ctl->axisX(),        // (-511 - 512) left X Axis
-    ctl->axisY(),        // (-511 - 512) left Y axis
-    ctl->axisRX(),       // (-511 - 512) right X axis
-    ctl->axisRY(),       // (-511 - 512) right Y axis
-    ctl->brake(),        // (0 - 1023): brake button
-    ctl->throttle(),     // (0 - 1023): throttle (AKA gas) button
-    ctl->miscButtons(),  // bitmask of pressed "misc" buttons
-    ctl->gyroX(),        // Gyro X
-    ctl->gyroY(),        // Gyro Y
-    ctl->gyroZ(),        // Gyro Z
-    ctl->accelX(),       // Accelerometer X
-    ctl->accelY(),       // Accelerometer Y
-    ctl->accelZ()        // Accelerometer Z
-  );
-}
-
-void onConnectedController(ControllerPtr ctl) {
-  bool foundEmptySlot = false;
-  for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
-    if (myControllers[i] == nullptr) {
-      Serial.printf("CALLBACK: Controller is connected, index=%d\n", i);
-      ControllerProperties properties = ctl->getProperties();
-      Serial.printf("Controller model: %s, VID=0x%04x, PID=0x%04x\n", ctl->getModelName().c_str(), properties.vendor_id, properties.product_id);
-      myControllers[i] = ctl;
-      foundEmptySlot = true;
-      break;
-    }
-  }
-
-  if (!foundEmptySlot) {
-    Serial.println("CALLBACK: Controller connected, but could not found empty slot");
-  }
-}
-
-void onDisconnectedController(ControllerPtr ctl) {
-  bool foundController = false;
-
-  for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
-    if (myControllers[i] == ctl) {
-      Serial.printf("CALLBACK: Controller disconnected from index=%d\n", i);
-      myControllers[i] = nullptr;
-      foundController = true;
-      break;
-    }
-  }
-
-  if (!foundController) {
-    Serial.println("CALLBACK: Controller disconnected, but not found in myControllers");
-  }
-}
-
+// ----------------- Main -------------------
 void processGamepad(ControllerPtr ctl) {
   bool L1pressed = ctl->buttons() == 0x0010;
   bool R1pressed = ctl->buttons() == 0x0020;
@@ -78,17 +19,16 @@ void processGamepad(ControllerPtr ctl) {
   int turnSpeed = 0;
 
   speed = mixedCubicMapping(joystickY_value);
-  turnSpeed = mixedCubicMapping(joystickX_value) * -1;
+  turnSpeed = mixedCubicMapping(joystickX_value) * -1 / 2;
 
-  if (!L2pressed && !R2pressed && !L1pressed && !R1pressed) {
-    ctl->setColorLED(1, 8, 79);
+  if (!L1pressed && !R1pressed) {
+    ctl->setColorLED(0, 204, 204);
   }
 
   // ------------ L2 Pressed ------------------
-  if (L2pressed) {
-    ctl->setColorLED(255, 255, 0);
+  if (!L1pressed && !R1pressed && L2pressed) {
     if (speed == 0) {
-      turnSpeed = -50;
+      turnSpeed = -80;
     }
 
     if (speed != 0 && (speed <= 10 && speed >= -10)) {
@@ -108,10 +48,9 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   // -------------- R2 Pressed --------------
-  if (R2pressed) {
-    ctl->setColorLED(0, 255, 255);
+  if (!L1pressed && !R1pressed && R2pressed) {
     if (speed == 0) {
-      turnSpeed = 50;
+      turnSpeed = 80;
     }
     if (speed != 0 && (speed <= 10 && speed >= -10)) {
       turnSpeed = 40;
@@ -137,17 +76,17 @@ void processGamepad(ControllerPtr ctl) {
   }
   // ------------ SKILL -----------------------
   // boost
-  if (R1pressed) {
+  if (speed != 0 && R1pressed) {
+    ctl->setColorLED(255, 0, 127);
     if (getarMillis <= 250 && !getar_flag) {
-      ctl->playDualRumble(0, 400, 0x80, 0x40);
+      ctl->playDualRumble(0, 500, 0x80, 0x40);
       getarMillis = millis();
       getar_flag = true;
     } else {
       getarMillis = 0;
       ctl->playDualRumble(0, 0, 0, 0);
     }
-    ctl->setColorLED(255, 0, 0);
-    Serial.println("BOOST");
+
     if (speed < 0) {
       speed = -255;  // Boosting
       Serial.println("BOOST BACK");
@@ -161,14 +100,14 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   //  reduce
-  if (L1pressed) {
-    ctl->setColorLED(0, 255, 0);
+  if (speed != 0 && L1pressed) {
+    ctl->setColorLED(255, 255, 0);
 
     if (speed < 0) {
-      speed = -100;  // reduce
+      speed = -20;  // reduce
 
     } else {
-      speed = 50;
+      speed = 20;
       Serial.println("REDUCE FRWD");
     }
   }
@@ -182,7 +121,7 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   if (isTurning) {
-    if (millis() - turnMillis <= 275) {
+    if (millis() - turnMillis <= 200) {
       turnSpeed = 255;
     } else {
       isTurning = false;
@@ -202,7 +141,7 @@ void processGamepad(ControllerPtr ctl) {
     Serial.println("PUTAR 90");
   }
   if (isTurning90) {
-    if (millis() - turn90Millis <= 140) {
+    if (millis() - turn90Millis <= 120) {
       turnSpeed = 255;
     } else {
       isTurning90 = false;
@@ -214,24 +153,10 @@ void processGamepad(ControllerPtr ctl) {
     turn90started = false;
   }
 
-  // ------------- Putar 90 ---------------------
-  if (SquarePressed && !turn90started_reverse && !isTurning90_reverse) {
-    isTurning90_reverse = true;
-    turn90started_reverse = true;
-    turn90Millis_reverse = millis();
-    Serial.println("PUTAR 90 REVERSE");
-  }
-  if (isTurning90_reverse) {
-    if (millis() - turn90Millis_reverse <= 140) {
-      turnSpeed = -255;
-    } else {
-      isTurning90_reverse = false;
-      Serial.println("STOP PUTAR Reverse");
-    }
-  }
-  // reset
-  if (!SquarePressed) {
-    turn90started_reverse = false;
+  // -------------  BERHENTI  ---------------------
+  if (SquarePressed) {
+    speed = 0;
+    turnSpeed = 0;
   }
 
   Motion(speed, turnSpeed);
@@ -244,9 +169,10 @@ void processGamepad(ControllerPtr ctl) {
   // Serial.println(ctl->axisY());
 
 
-  // dumpGamepad(ctl);
+  // dumpGamepad(ctl); // for debugging
 }
 
+// ---------------- Which controller do u use? ----------------
 void processControllers() {
   for (auto myController : myControllers) {
     if (myController && myController->isConnected() && myController->hasData()) {
