@@ -15,18 +15,22 @@ void processGamepad(ControllerPtr ctl) {
 
   int joystickY_value = ctl->axisY();
   int joystickX_value = ctl->axisRX();
+  int joystickRY_value = ctl->axisRY();
+
   int speed = 0;
   int turnSpeed = 0;
 
-  speed = mixedCubicMapping(joystickY_value);
-  turnSpeed = mixedCubicMapping(joystickX_value) * -1 / 2;
+
+
+  turnSpeed = exponentialMapping(joystickX_value, 80.0);
+  speed = exponentialMapping(joystickY_value, 140.0) * -1;
 
   if (!L1pressed && !R1pressed) {
     ctl->setColorLED(0, 204, 204);
   }
 
   // ------------ L2 Pressed ------------------
-  if (!L1pressed && !R1pressed && L2pressed) {
+  if (L2pressed) {
     if (speed == 0) {
       turnSpeed = -80;
     }
@@ -48,7 +52,7 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   // -------------- R2 Pressed --------------
-  if (!L1pressed && !R1pressed && R2pressed) {
+  if (R2pressed) {
     if (speed == 0) {
       turnSpeed = 80;
     }
@@ -94,6 +98,7 @@ void processGamepad(ControllerPtr ctl) {
       speed = 255;  // Boosting
       Serial.println("BOOST FWD");
     }
+    turnSpeed = exponentialMapping(joystickX_value, 100.0);
 
   } else {
     getar_flag = false;
@@ -154,20 +159,21 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   // -------------  BERHENTI  ---------------------
-  if (SquarePressed) {
+  if (false) {
     speed = 0;
     turnSpeed = 0;
   }
 
   Motion(speed, turnSpeed);
 
-  // Serial.print("Speed : ");
-  // Serial.print(speed);
-  // Serial.print("Turn : ");
-  // Serial.print(turnSpeed);
-  // Serial.print(" axis Y : ");
-  // Serial.println(ctl->axisY());
-
+  Serial.print("Speed : ");
+  Serial.print(speed);
+  Serial.print("Turn : ");
+  Serial.print(turnSpeed);
+  Serial.print(" axis Y : ");
+  Serial.print(ctl->axisY());
+  Serial.print(" axis RY : ");
+  Serial.println(ctl->axisRY());
 
   // dumpGamepad(ctl); // for debugging
 }
