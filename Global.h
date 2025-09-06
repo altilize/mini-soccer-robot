@@ -1,9 +1,9 @@
 #define MOTOR_ENABLE 32
 
-#define RIGHT_FORWARD 25
-#define RIGHT_BACKWARD 26
-#define LEFT_BACKWARD 27
-#define LEFT_FORWARD 14
+#define RIGHT_FORWARD 14 //25
+#define RIGHT_BACKWARD 27 // 26
+#define LEFT_BACKWARD 26 // 27
+#define LEFT_FORWARD 25 //14
 
 #define KICKER 33
 

@@ -126,7 +126,7 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   if (isTurning) {
-    if (millis() - turnMillis <= 200) {
+    if (millis() - turnMillis <= 150) {
       turnSpeed = 255;
     } else {
       isTurning = false;
@@ -146,7 +146,7 @@ void processGamepad(ControllerPtr ctl) {
     Serial.println("PUTAR 90");
   }
   if (isTurning90) {
-    if (millis() - turn90Millis <= 120) {
+    if (millis() - turn90Millis <= 100) {
       turnSpeed = 255;
     } else {
       isTurning90 = false;
@@ -158,11 +158,26 @@ void processGamepad(ControllerPtr ctl) {
     turn90started = false;
   }
 
-  // -------------  BERHENTI  ---------------------
-  if (false) {
-    speed = 0;
-    turnSpeed = 0;
+  // -------------- Putar -90 -------------------------- //
+  if (SquarePressed && !turn90started_reverse && !isTurning90_reverse) {
+    isTurning90_reverse = true;
+    turn90started_reverse = true;
+    turn90Millis_reverse = millis();
+    Serial.println("PUTAR -90");
   }
+  if (isTurning90_reverse) {
+    if (millis() - turn90Millis_reverse <= 80) {
+      turnSpeed = -255;
+    } else {
+      isTurning90_reverse = false;
+      Serial.println("STOP PUTAR");
+    }
+  }
+  // reset
+  if (!SquarePressed) {
+    turn90started_reverse = false;
+  }
+
 
   Motion(speed, turnSpeed);
 
