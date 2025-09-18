@@ -1,9 +1,9 @@
-#define MOTOR_ENABLE 32
+// Pins for Robot Moses
 
-#define RIGHT_FORWARD 14 //25
-#define RIGHT_BACKWARD 27 // 26
-#define LEFT_BACKWARD 26 // 27
-#define LEFT_FORWARD 25 //14
+#define RIGHT_FORWARD 14   //
+#define RIGHT_BACKWARD 27  // 27
+#define LEFT_BACKWARD 26   // 26
+#define LEFT_FORWARD 25    //25
 
 #define KICKER 33
 
@@ -34,6 +34,7 @@ bool turn90started_reverse = false;
 
 
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
+// static const char * controller1_addr_string = "8C:41:F2:85:77:92"; // Moses 
 
 void dumpGamepad(ControllerPtr ctl) {
   Serial.printf(
@@ -92,4 +93,3 @@ void onDisconnectedController(ControllerPtr ctl) {
     Serial.println("CALLBACK: Controller disconnected, but not found in myControllers");
   }
 }
-

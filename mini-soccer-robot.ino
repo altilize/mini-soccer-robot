@@ -2,8 +2,8 @@
 
 // ----------------- Main -------------------
 void processGamepad(ControllerPtr ctl) {
-  bool L1pressed = ctl->buttons() == 0x0010;
-  bool R1pressed = ctl->buttons() == 0x0020;
+  bool L1pressed = ctl->l1();
+  bool R1pressed = ctl->r1();
   bool L2pressed = ctl->buttons() == 0x0040;
   bool R2pressed = ctl->buttons() == 0x0080;
   bool Xpressed = ctl->buttons() == 0x0001;
@@ -22,7 +22,7 @@ void processGamepad(ControllerPtr ctl) {
 
 
 
-  turnSpeed = exponentialMapping(joystickX_value, 80.0);
+  turnSpeed = exponentialMapping(joystickX_value, 120.0);
   speed = exponentialMapping(joystickY_value, 140.0) * -1;
 
   if (!L1pressed && !R1pressed) {
@@ -30,56 +30,22 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   // ------------ L2 Pressed ------------------
-  if (L2pressed) {
-    if (speed == 0) {
-      turnSpeed = -80;
-    }
+  if (L2pressed) turnSpeed = -255;
 
-    if (speed != 0 && (speed <= 10 && speed >= -10)) {
-      turnSpeed = -40;
-      Serial.println("L2 Kecil");
-    }
 
-    if ((speed >= 10 && speed <= 120) || (speed <= -10 && speed >= -120)) {
-      turnSpeed = -50;
-      Serial.println("L2 Gede Aja");
-    }
-
-    if (speed > 120 || speed < -120) {
-      turnSpeed = -120;
-      Serial.println("L2 Gede Bgt");
-    }
-  }
 
   // -------------- R2 Pressed --------------
-  if (R2pressed) {
-    if (speed == 0) {
-      turnSpeed = 80;
-    }
-    if (speed != 0 && (speed <= 10 && speed >= -10)) {
-      turnSpeed = 40;
-      Serial.println("R2 Kecil");
-    }
-
-    if ((speed >= 10 && speed <= 120) || (speed <= -10 && speed >= -120)) {
-      turnSpeed = 50;
-      Serial.println("R2 Gede Aja");
-    }
-
-    if (speed > 120 || speed < -120) {
-      turnSpeed = 120;
-      Serial.println("R2 Gede Bgt");
-    }
-  }
+  if (R2pressed) turnSpeed = 255;
 
   if (Xpressed) {
     digitalWrite(KICKER, HIGH);
     delay(50);
     digitalWrite(KICKER, LOW);
-    Serial.print("KICK");
   }
-  // ------------ SKILL -----------------------
-  // boost
+
+
+  // ==================== SKILL =================== //
+  // ---------------- boost -------------------- //
   if (speed != 0 && R1pressed) {
     ctl->setColorLED(255, 0, 127);
     if (getarMillis <= 250 && !getar_flag) {
@@ -92,11 +58,9 @@ void processGamepad(ControllerPtr ctl) {
     }
 
     if (speed < 0) {
-      speed = -255;  // Boosting
-      Serial.println("BOOST BACK");
+      speed = -255;
     } else {
-      speed = 255;  // Boosting
-      Serial.println("BOOST FWD");
+      speed = 255;
     }
     turnSpeed = exponentialMapping(joystickX_value, 100.0);
 
@@ -104,16 +68,15 @@ void processGamepad(ControllerPtr ctl) {
     getar_flag = false;
   }
 
-  //  reduce
-  if (speed != 0 && L1pressed) {
+  //  -------------- reduce ------------------- //
+  if (speed != 0 && L1pressed && !R1pressed) {
     ctl->setColorLED(255, 255, 0);
 
     if (speed < 0) {
-      speed = -20;  // reduce
+      speed = -40;  // reduce
 
     } else {
-      speed = 20;
-      Serial.println("REDUCE FRWD");
+      speed = 40;
     }
   }
 
@@ -122,15 +85,13 @@ void processGamepad(ControllerPtr ctl) {
     isTurning = true;
     turnStarted = true;
     turnMillis = millis();
-    Serial.println("PUTAR");
   }
 
   if (isTurning) {
-    if (millis() - turnMillis <= 150) {
+    if (millis() - turnMillis <= 180) {
       turnSpeed = 255;
     } else {
       isTurning = false;
-      Serial.println("STOP PUTAR");
     }
   }
   // reset
@@ -166,11 +127,10 @@ void processGamepad(ControllerPtr ctl) {
     Serial.println("PUTAR -90");
   }
   if (isTurning90_reverse) {
-    if (millis() - turn90Millis_reverse <= 80) {
+    if (millis() - turn90Millis_reverse <= 90) {
       turnSpeed = -255;
     } else {
       isTurning90_reverse = false;
-      Serial.println("STOP PUTAR");
     }
   }
   // reset
@@ -223,8 +183,6 @@ void setup() {
   pinMode(LEFT_BACKWARD, OUTPUT);
   pinMode(KICKER, OUTPUT);
 
-  pinMode(MOTOR_ENABLE, OUTPUT);
-  digitalWrite(MOTOR_ENABLE, HIGH);
 
   startMillis = millis();
 }
@@ -234,5 +192,5 @@ void loop() {
   if (dataUpdated) {
     processControllers();
   }
-  delayMicroseconds(20);
+  // delayMicroseconds(20);
 }
