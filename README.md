@@ -6,7 +6,7 @@ ESP32 firmware for a ~3 kg Bluetooth gamepad controlled soccer robot with differ
 
 ## Overview
 
-This robot was used by team **R2C-Tenda** (Robotics Research Center, Universitas Kristen Satya Wacana), which won a **Silver medal at FIRA RoboWorld Cup 2025** in the mini soccer category.
+This robot was used by team **R2C-Tenda** (Robotics Research Center, Universitas Kristen Satya Wacana), which won a **Silver medal at FIRA Indonesia Open 2025** in the mini soccer category.
 
 The robot is driven manually by an operator. A Bluetooth gamepad connects directly to the ESP32 through [Bluepad32](https://github.com/ricardoquesada/bluepad32), and the firmware translates stick and button input into motor PWM and kicker pulses. Most of the code is about driver feel: input shaping, speed modes and fast fixed-angle turns that are hard to do reliably with a thumbstick under match pressure.
 
